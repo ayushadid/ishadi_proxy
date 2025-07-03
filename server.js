@@ -1,17 +1,17 @@
+import express from 'express';
+import { MongoClient } from 'mongodb';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
+const app = express(); // ✅ This must come first
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Serve static files from "public" folder
-app.use(express.static(path.join(__dirname, 'public')));
-
-import express from 'express';
-import { MongoClient } from 'mongodb';
-const app = express();
+// Middleware
 app.use(express.json());
+app.use(express.static(path.join(__dirname, 'public'))); // ✅ Move here after `app` is declared
 
+// MongoDB setup
 const uri = process.env.MONGO_URI;
 const client = new MongoClient(uri);
 let db;
