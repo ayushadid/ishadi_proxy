@@ -1,26 +1,25 @@
-// server.js
-const express = require('express');
-const { MongoClient } = require('mongodb');
+import express from 'express';
+import { MongoClient } from 'mongodb';
 const app = express();
 app.use(express.json());
 
-const MONGO_URI = 'mongodb+srv://ayushadid:npJ6maymWrs2U8y1@cluster0.eajjum2.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0'; // paste your URI here
-const client = new MongoClient(MONGO_URI);
+const uri = process.env.MONGO_URI;
+const client = new MongoClient(uri);
 let db;
 
 app.post('/insert/:collection', async (req, res) => {
   try {
+    const collectionName = req.params.collection;
     const data = req.body;
-    const collection = req.params.collection;
-    await db.collection(collection).insertMany(data);
-    res.send({ success: true });
-  } catch (e) {
-    console.error(e);
+    await db.collection(collectionName).insertMany(data);
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
     res.status(500).send("Insert failed");
   }
 });
 
 client.connect().then(() => {
-  db = client.db(); // your database name is auto-selected from URI
-  app.listen(3000, () => console.log("Listening on 3000"));
+  db = client.db(); // uses DB name from URI
+  app.listen(process.env.PORT || 3000, () => console.log("✅ Mongo proxy running"));
 });
