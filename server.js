@@ -19,6 +19,73 @@ app.post('/insert/:collection', async (req, res) => {
   }
 });
 
+// Route 1: Get duration summary per employee + task
+app.get('/durations', async (req, res) => {
+  const pipeline = [
+    { $sort: { Employee: 1, Task_ID: 1, Timestamp: 1 } },
+    { $group: {
+      _id: { employee: "$Employee", task: "$Task_ID" },
+      logs: {
+        $push: {
+          action: "$Action",
+          timestamp: "$Timestamp"
+        }
+      }
+    }},
+    { $project: {
+      _id: 0,
+      Employee: "$_id.employee",
+      Task_ID: "$_id.task",
+      durations: {
+        $map: {
+          input: { $range: [0, { $size: "$logs" }, 2] },
+          as: "idx",
+          in: {
+            $cond: [
+              {
+                $and: [
+                  { $eq: [ { $arrayElemAt: [ "$logs.action", "$$idx" ] }, "Start" ] },
+                  { $eq: [ { $arrayElemAt: [ "$logs.action", { $add: ["$$idx", 1] } ] }, "Stop" ] }
+                ]
+              },
+              {
+                $divide: [
+                  {
+                    $subtract: [
+                      { $toDate: { $arrayElemAt: [ "$logs.timestamp", { $add: ["$$idx", 1] } ] } },
+                      { $toDate: { $arrayElemAt: [ "$logs.timestamp", "$$idx" ] } }
+                    ]
+                  },
+                  1000 * 60
+                ]
+              },
+              0
+            ]
+          }
+        }
+    }},
+    { $project: {
+      Employee: 1,
+      Task_ID: 1,
+      TotalDurationMinutes: { $sum: "$durations" }
+    }}
+  ];
+
+  const data = await db.collection('time_logs').aggregate(pipeline).toArray();
+  res.json(data);
+});
+
+// Route 2: Get timestamps for employee+task
+app.get('/details', async (req, res) => {
+  const { employee, task } = req.query;
+  const data = await db.collection('time_logs')
+    .find({ Employee: employee, Task_ID: task })
+    .sort({ Timestamp: 1 })
+    .toArray();
+  res.json(data);
+});
+
+
 client.connect().then(() => {
   db = client.db(); // uses DB name from URI
   app.listen(process.env.PORT || 3000, () => console.log("✅ Mongo proxy running"));
