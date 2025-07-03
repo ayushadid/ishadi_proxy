@@ -21,18 +21,19 @@ app.post('/insert/:collection', async (req, res) => {
 
 // Route 1: Get duration summary per employee + task
 app.get('/durations', async (req, res) => {
-  const pipeline = [
-    { $sort: { Employee: 1, Task_ID: 1, Timestamp: 1 } },
-    { $group: {
-      _id: { employee: "$Employee", task: "$Task_ID" },
-      logs: {
-        $push: {
-          action: "$Action",
-          timestamp: "$Timestamp"
-        }
+ const pipeline = [
+  { $sort: { Employee: 1, Task_ID: 1, Timestamp: 1 } },
+  { $group: {
+    _id: { employee: "$Employee", task: "$Task_ID" },
+    logs: {
+      $push: {
+        action: "$Action",
+        timestamp: "$Timestamp"
       }
-    }},
-    { $project: {
+    }
+  }},
+  {
+    $project: {
       _id: 0,
       Employee: "$_id.employee",
       Task_ID: "$_id.task",
@@ -63,15 +64,20 @@ app.get('/durations', async (req, res) => {
             ]
           }
         }
-    }},
-    { $project: {
+      }
+    }
+  },
+  {
+    $project: {
       Employee: 1,
       Task_ID: 1,
       TotalDurationMinutes: { $sum: "$durations" }
-    }}
-  ];
+    }
+  }
+];
 
-  const data = await db.collection('time_logs').aggregate(pipeline).toArray();
+
+const data = await db.collection('time_logs').aggregate(pipeline).toArray();
   res.json(data);
 });
 
