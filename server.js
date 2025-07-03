@@ -16,17 +16,47 @@ const uri = process.env.MONGO_URI;
 const client = new MongoClient(uri);
 let db;
 
+// app.post('/insert/:collection', async (req, res) => {
+//   try {
+//     const collectionName = req.params.collection;
+//     const data = req.body;
+//     await db.collection(collectionName).insertMany(data);
+//     res.json({ success: true });
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).send("Insert failed");
+//   }
+// });
+
 app.post('/insert/:collection', async (req, res) => {
   try {
     const collectionName = req.params.collection;
     const data = req.body;
-    await db.collection(collectionName).insertMany(data);
-    res.json({ success: true });
+    const collection = db.collection(collectionName);
+
+    const bulkOps = data.map(item => {
+      let filterField;
+      if (collectionName === 'time_logs') filterField = { Entry_ID: item.Entry_ID };
+      else if (collectionName === 'unique_tasks') filterField = { Task_ID: item.Task_ID };
+      else if (collectionName === 'sheet1') filterField = { Task_ID: item.Task_ID };
+
+      return {
+        updateOne: {
+          filter: filterField,
+          update: { $set: item },
+          upsert: true
+        }
+      };
+    });
+
+    await collection.bulkWrite(bulkOps);
+    res.json({ success: true, upserts: data.length });
   } catch (err) {
     console.error(err);
-    res.status(500).send("Insert failed");
+    res.status(500).send("Upsert failed");
   }
 });
+
 
 // Route 1: Get duration summary per employee + task
 app.get('/durations', async (req, res) => {
