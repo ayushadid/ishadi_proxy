@@ -36,9 +36,11 @@ app.post('/insert/:collection', async (req, res) => {
 
     const bulkOps = data.map(item => {
       let filterField;
-      if (collectionName === 'time_logs') filterField = { Entry_ID: item.Entry_ID };
-      else if (collectionName === 'unique_tasks') filterField = { Task_ID: item.Task_ID };
-      else if (collectionName === 'sheet1') filterField = { Task_ID: item.Task_ID };
+if (collectionName === 'time_logs') filterField = { Entry_ID: item.Entry_ID };
+else if (collectionName === 'unique_tasks') filterField = { Task_ID: item.Task_ID };
+else if (collectionName === 'sheet1') filterField = { Task_ID: item.Task_ID };
+else if (collectionName === 'employees') filterField = { Email: item.Email?.toLowerCase() };
+
 
       return {
         updateOne: {
